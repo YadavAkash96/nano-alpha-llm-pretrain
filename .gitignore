@@ -1,0 +1,14 @@
+.py312/
+.conda-pkgs/
+.venv/
+venv/
+.env
+.env.*
+__pycache__/
+*.pyc
+
+artifacts/logs/
+artifacts/tmp
+checkpoints/
+wandb/
+outputs/
