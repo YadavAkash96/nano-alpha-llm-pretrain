@@ -156,7 +156,7 @@ Interpretation in plain language:
 
 Comparison plot for all checkpoints is saved in:
 
-![checkpoint comparison](artifacts/eval/phase3_intrinsic/phase3_checkpoint_comparison.png)
+![checkpoint comparison](assets/phase3_checkpoint_comparison.png)
 
 This figure uses one clean plot with a legend and normalized metric trends so checkpoints are easy to compare at a glance.
 
