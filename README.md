@@ -56,14 +56,14 @@ Detailed phase notes are in this repository:
 1. [Tokenizer phase details](docs/TOKENIZER_PHASE.md)
 2. [Training Q and A](docs/TRAINING_QA.md)
 3. [Resume guide](docs/TRAINING_RESUME.md)
-4. [Master project plan](docs/planning/Idea_discussion.md)
-5. [Phase 0 environment setup](docs/planning/phases/PHASE_0_ENVIRONMENT_SETUP.md)
-6. [Phase 1 data preparation](docs/planning/phases/PHASE_1_DATA_PREPARATION.md)
-7. [Phase 2 pretraining and checkpointing](docs/planning/phases/PHASE_2_PRETRAINING_AND_CHECKPOINTING.md)
-8. [Phase 3 intrinsic evaluation](docs/planning/phases/PHASE_3_INTRINSIC_EVALUATION.md)
-9. [Phase 4 benchmark evaluation](docs/planning/phases/PHASE_4_BENCHMARK_EVALUATION.md)
-10. [Phase 5 checkpoint dynamics](docs/planning/phases/PHASE_5_CHECKPOINT_DYNAMICS.md)
-11. [Phase 6 reporting and comparison](docs/planning/phases/PHASE_6_REPORTING_AND_COMPARISON.md)
+4. [Master project plan](docs/Idea_discussion.md)
+5. [Phase 0 environment setup](docs/PHASE_0_ENVIRONMENT_SETUP.md)
+6. [Phase 1 data preparation](docs/PHASE_1_DATA_PREPARATION.md)
+7. [Phase 2 pretraining and checkpointing](docs/PHASE_2_PRETRAINING_AND_CHECKPOINTING.md)
+8. [Phase 3 intrinsic evaluation](docs/PHASE_3_INTRINSIC_EVALUATION.md)
+9. [Phase 4 benchmark evaluation](docs/PHASE_4_BENCHMARK_EVALUATION.md)
+10. [Phase 5 checkpoint dynamics](docs/PHASE_5_CHECKPOINT_DYNAMICS.md)
+11. [Phase 6 reporting and comparison](docs/PHASE_6_REPORTING_AND_COMPARISON.md)
 
 ## Data and preprocessing
 
@@ -162,7 +162,7 @@ This figure uses one clean plot with a legend and normalized metric trends so ch
 
 Phase 3 reference:
 
-1. [Phase 3 document](docs/planning/phases/PHASE_3_INTRINSIC_EVALUATION.md)
+1. [Phase 3 document](docs/PHASE_3_INTRINSIC_EVALUATION.md)
 
 ## Benchmarking plan
 
@@ -178,7 +178,7 @@ Target tasks:
 
 The benchmark section is organized in:
 
-1. [Phase 4 document](docs/planning/phases/PHASE_4_BENCHMARK_EVALUATION.md)
+1. [Phase 4 document](docs/PHASE_4_BENCHMARK_EVALUATION.md)
 
 ## Training curves and analysis artifacts
 

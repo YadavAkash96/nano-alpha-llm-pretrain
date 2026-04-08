@@ -166,13 +166,13 @@ What it evaluates:
 3. Decision-readiness for deployment/further training
 
 ## Phase Documents
-1. [Phase 0 Environment Setup](phases/PHASE_0_ENVIRONMENT_SETUP.md)
-2. [Phase 1 Data Preparation](phases/PHASE_1_DATA_PREPARATION.md)
-3. [Phase 2 Pre-Training and Checkpointing](phases/PHASE_2_PRETRAINING_AND_CHECKPOINTING.md)
-4. [Phase 3 Intrinsic Evaluation](phases/PHASE_3_INTRINSIC_EVALUATION.md)
-5. [Phase 4 Benchmark Evaluation](phases/PHASE_4_BENCHMARK_EVALUATION.md)
-6. [Phase 5 Checkpoint Dynamics](phases/PHASE_5_CHECKPOINT_DYNAMICS.md)
-7. [Phase 6 Reporting and Comparison](phases/PHASE_6_REPORTING_AND_COMPARISON.md)
+1. [Phase 0 Environment Setup](PHASE_0_ENVIRONMENT_SETUP.md)
+2. [Phase 1 Data Preparation](PHASE_1_DATA_PREPARATION.md)
+3. [Phase 2 Pre-Training and Checkpointing](PHASE_2_PRETRAINING_AND_CHECKPOINTING.md)
+4. [Phase 3 Intrinsic Evaluation](PHASE_3_INTRINSIC_EVALUATION.md)
+5. [Phase 4 Benchmark Evaluation](PHASE_4_BENCHMARK_EVALUATION.md)
+6. [Phase 5 Checkpoint Dynamics](PHASE_5_CHECKPOINT_DYNAMICS.md)
+7. [Phase 6 Reporting and Comparison](PHASE_6_REPORTING_AND_COMPARISON.md)
 
 ## Current Status
 1. Planning updated for Phase 0-6 scope.
