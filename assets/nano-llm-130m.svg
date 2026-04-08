@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="280" viewBox="0 0 960 280" role="img" aria-label="Nano LLM 130M">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b5fff"/>
+      <stop offset="100%" stop-color="#00a67e"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="960" height="280" rx="22" fill="#0f172a"/>
+  <rect x="16" y="16" width="928" height="248" rx="16" fill="#111827" stroke="#1f2937"/>
+
+  <g transform="translate(480 148) rotate(2)">
+    <text x="0" y="0" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="138" fill="url(#g)" font-style="italic" font-weight="900">130M</text>
+  </g>
+
+  <line x1="210" y1="214" x2="750" y2="214" stroke="#334155" stroke-width="2"/>
+  <rect x="382" y="197" width="196" height="34" rx="10" fill="#111827" stroke="#334155"/>
+  <text x="480" y="219" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#cbd5e1" font-weight="700" letter-spacing="2">NANO LLM</text>
+  <text x="480" y="252" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#94a3b8">Pretraining and Evaluation Pipeline</text>
+</svg>

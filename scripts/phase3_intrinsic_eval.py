@@ -236,6 +236,72 @@ def plot_selective(curve: List[Dict[str, float]], out_png: Path) -> None:
     plt.close(fig)
 
 
+def checkpoint_step(name: str) -> int:
+    if name == "final":
+        return 10**9
+    if name.startswith("checkpoint-"):
+        try:
+            return int(name.split("-")[-1])
+        except Exception:
+            return 10**9 - 1
+    return 10**9 - 2
+
+
+def normalize_series(values: List[float], higher_is_better: bool) -> List[float]:
+    if not values:
+        return []
+    low = min(values)
+    high = max(values)
+    if abs(high - low) < 1e-12:
+        return [0.5 for _ in values]
+    scaled = [(value - low) / (high - low) for value in values]
+    if higher_is_better:
+        return scaled
+    return [1.0 - value for value in scaled]
+
+
+def plot_checkpoint_comparison(summary_rows: List[Dict[str, object]], out_png: Path) -> None:
+    if not summary_rows:
+        return
+
+    rows = sorted(summary_rows, key=lambda r: checkpoint_step(str(r["checkpoint"])))
+    labels = [str(r["checkpoint"]) for r in rows]
+    x = list(range(len(rows)))
+
+    ppl = normalize_series([float(r["perplexity"]) for r in rows], higher_is_better=False)
+    acc = normalize_series([float(r["token_accuracy"]) for r in rows], higher_is_better=True)
+    ece = normalize_series([float(r["ece"]) for r in rows], higher_is_better=False)
+    brier = normalize_series([float(r["brier"]) for r in rows], higher_is_better=False)
+
+    fig, ax = plt.subplots(figsize=(13, 7.5))
+    ax.plot(x, ppl, marker="o", linewidth=2.2, color="#2563eb", label="Perplexity trend")
+    ax.plot(x, acc, marker="o", linewidth=2.2, color="#16a34a", label="Token accuracy trend")
+    ax.plot(x, ece, marker="o", linewidth=2.2, color="#f59e0b", label="ECE trend")
+    ax.plot(x, brier, marker="o", linewidth=2.2, color="#ef4444", label="Brier trend")
+
+    ax.set_title("Checkpoint comparison during learning", fontsize=15)
+    ax.set_xlabel("Checkpoint")
+    ax.set_ylabel("Normalized score, higher is better")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=30, ha="right")
+    ax.set_ylim(0.0, 1.02)
+    ax.grid(alpha=0.22)
+    ax.legend(loc="best", frameon=True)
+
+    ax.text(
+        0.01,
+        0.02,
+        "Metrics are normalized per series so they can share one clean comparison plot.",
+        transform=ax.transAxes,
+        fontsize=9,
+        color="#475569",
+    )
+
+    fig.tight_layout()
+    fig.savefig(out_png, dpi=160)
+    plt.close(fig)
+
+
 def evaluate_checkpoint(
     ckpt_dir: Path,
     args: argparse.Namespace,
@@ -465,8 +531,12 @@ def main() -> None:
     summary_csv = args.output_dir / "phase3_intrinsic_summary.csv"
     write_summary_csv(summary_csv, summary_rows)
 
+    comparison_png = args.output_dir / "phase3_checkpoint_comparison.png"
+    plot_checkpoint_comparison(summary_rows, comparison_png)
+
     print(f"Wrote summary JSON: {summary_json}")
     print(f"Wrote summary CSV: {summary_csv}")
+    print(f"Wrote checkpoint comparison plot: {comparison_png}")
 
 
 if __name__ == "__main__":
