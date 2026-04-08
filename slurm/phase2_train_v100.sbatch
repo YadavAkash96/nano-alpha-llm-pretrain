@@ -1,0 +1,152 @@
+#!/bin/bash -l
+
+#SBATCH --job-name=nanoalpha-train-v100
+#SBATCH --partition=v100
+#SBATCH --gres=gpu:v100:1
+#SBATCH --cpus-per-task=8
+#SBATCH --time=24:00:00
+#SBATCH --output=artifacts/logs/slurm/%x-%j.out
+#SBATCH --error=artifacts/logs/slurm/%x-%j.err
+#SBATCH --export=NONE
+
+unset SLURM_EXPORT_ENV
+set -euo pipefail
+export PYTHONUNBUFFERED=1
+
+REPO_ROOT=/home/hpc/iwi5/iwi5232h/nano-alpha-llm-pretrain
+PYTHON_BIN=${REPO_ROOT}/.py312/bin/python
+PROJECT_ROOT=${REPO_ROOT}
+
+if [ ! -x "$PYTHON_BIN" ]; then
+  echo "Python environment not found at $PYTHON_BIN"
+  exit 1
+fi
+
+module purge
+module load python/3.12-conda
+
+ENV_FILE=${REPO_ROOT}/.env
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  source "$ENV_FILE"
+  set +a
+fi
+
+export WANDB_PROJECT=nano-alpha-llm
+export WANDB_RUN_GROUP=phase2_v100
+export WANDB_INIT_TIMEOUT=300
+
+# MLflow defaults to local file store unless overridden in environment.
+mkdir -p "${PROJECT_ROOT}/mlruns"
+LOCAL_MLFLOW_URI="file:${PROJECT_ROOT}/mlruns"
+export MLFLOW_TRACKING_URI="${MLFLOW_TRACKING_URI:-$LOCAL_MLFLOW_URI}"
+export MLFLOW_EXPERIMENT_NAME="${MLFLOW_EXPERIMENT_NAME:-nano-alpha-130m-phase2}"
+
+# If a remote MLflow URI is configured but unreachable, fall back to local store.
+if [[ "$MLFLOW_TRACKING_URI" =~ ^https?:// ]]; then
+  if ! MLFLOW_TRACKING_URI="$MLFLOW_TRACKING_URI" "$PYTHON_BIN" - <<'PY'
+import os
+import urllib.request
+import urllib.error
+
+url = os.environ["MLFLOW_TRACKING_URI"]
+try:
+    urllib.request.urlopen(url, timeout=8)
+except urllib.error.HTTPError:
+    # Server reached but path may require auth/specific endpoint.
+    pass
+except Exception:
+    raise SystemExit(1)
+PY
+  then
+    echo "Remote MLflow URI unreachable; falling back to local file store: $LOCAL_MLFLOW_URI"
+    export MLFLOW_TRACKING_URI="$LOCAL_MLFLOW_URI"
+  fi
+fi
+
+REPORT_TO=mlflow,wandb
+if [ -z "${WANDB_API_KEY:-}" ]; then
+  echo "WANDB_API_KEY is not set; using MLflow-only logging for this run."
+  REPORT_TO=mlflow
+elif ! "$PYTHON_BIN" - <<'PY'
+import urllib.request
+
+try:
+    urllib.request.urlopen("https://api.wandb.ai", timeout=8)
+except Exception:
+    raise SystemExit(1)
+PY
+then
+  echo "W&B endpoint unreachable from compute node; falling back to MLflow-only logging for this run."
+  REPORT_TO=mlflow
+fi
+
+cd "$PROJECT_ROOT"
+mkdir -p artifacts/logs/slurm artifacts/logs/detailed checkpoints/nano-alpha-130m-v100
+
+echo "Using Python: $PYTHON_BIN"
+"$PYTHON_BIN" -u - <<'PY'
+import sys
+import torch
+print('sys.executable =', sys.executable)
+print('torch =', torch.__version__)
+print('torch CUDA runtime =', torch.version.cuda)
+
+required = [
+  'torch',
+  'transformers',
+  'datasets',
+  'tokenizers',
+  'mlflow',
+]
+missing = []
+for mod in required:
+  try:
+    __import__(mod)
+  except Exception as exc:
+    missing.append((mod, str(exc)))
+
+if missing:
+  print('Dependency preflight failed:')
+  for mod, err in missing:
+    print(f'  - {mod}: {err}')
+  raise SystemExit(2)
+
+if not torch.cuda.is_available():
+  print('GPU preflight failed: torch.cuda.is_available() is False. Refusing CPU fallback.')
+  raise SystemExit(3)
+
+print('CUDA available =', torch.cuda.is_available())
+print('CUDA device count =', torch.cuda.device_count())
+print('CUDA device 0 =', torch.cuda.get_device_name(0))
+
+print('Dependency preflight OK')
+PY
+
+{
+echo "[$(date '+%F %T')] [train-sbatch] Starting phase2 training on V100"
+echo "[$(date '+%F %T')] [train-sbatch] Report to: $REPORT_TO"
+echo "[$(date '+%F %T')] [train-sbatch] MLflow URI: ${MLFLOW_TRACKING_URI}"
+echo "[$(date '+%F %T')] [train-sbatch] MLflow experiment: ${MLFLOW_EXPERIMENT_NAME}"
+"$PYTHON_BIN" -u scripts/train.py \
+  --train-file data/processed/phase1_v2_de_eval/train_corpus.jsonl \
+  --val-file data/processed/phase1_v2_de_eval/val_corpus.jsonl \
+  --tokenizer-file artifacts/tokenizer/nano_alpha_bpe.tokenizer.json \
+  --output-dir checkpoints/nano-alpha-130m-v100 \
+  --max-steps 5000 \
+  --logging-steps 20 \
+  --save-steps 500 \
+  --eval-steps 500 \
+  --train-batch-size 2 \
+  --eval-batch-size 2 \
+  --grad-accum-steps 16 \
+  --seq-length 1024 \
+  --learning-rate 3e-4 \
+  --weight-decay 0.1 \
+  --warmup-ratio 0.03 \
+  --fp16 \
+  --report-to "$REPORT_TO" \
+  --mlflow-tracking-uri "$MLFLOW_TRACKING_URI" \
+  --mlflow-experiment-name "$MLFLOW_EXPERIMENT_NAME"
+echo "[$(date '+%F %T')] [train-sbatch] Finished phase2 training on V100"
+} 2>&1 | tee artifacts/logs/detailed/train_informer_v100_${SLURM_JOB_ID}.txt

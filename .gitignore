@@ -7,8 +7,21 @@ venv/
 __pycache__/
 *.pyc
 
+data/
 artifacts/logs/
 artifacts/tmp
+artifacts/
 checkpoints/
 wandb/
 outputs/
+notebooks/input.txt
+
+# Large archive/model artifacts (generated)
+*.tar
+*.tar.gz
+*.tgz
+*.tar.zst
+*.zst
+*.sha256
+*.safetensors
+*.pt
