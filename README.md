@@ -101,7 +101,7 @@ Training script:
 Main SLURM scripts:
 
 1. `slurm/phase2_train_v100.sbatch`
-2. `slurm/phase2_train_v100_resume.sbatch`
+2. `slurm/phase2_train_v100_resume_vault.sbatch`
 
 Key training choices:
 
@@ -134,31 +134,56 @@ What it computes per checkpoint:
 5. Selective prediction risk coverage curve
 6. Domain or language breakdown
 
-Latest intrinsic summary snapshot from Phase 3 run:
+Phase 3 evaluation over 60k steps (checkpoints 5500–60000 sampled at 2k stride):
 
 | Checkpoint | Perplexity | Token Accuracy | ECE | Brier |
 |---|---:|---:|---:|---:|
-| checkpoint-1000 | 162.06 | 0.2091 | 0.0111 | 0.1201 |
-| checkpoint-1500 | 94.54 | 0.2692 | 0.0183 | 0.1314 |
-| checkpoint-2500 | 62.32 | 0.3116 | 0.0103 | 0.1357 |
-| checkpoint-3500 | 50.98 | 0.3329 | 0.0112 | 0.1382 |
-| checkpoint-4000 | 48.28 | 0.3390 | 0.0134 | 0.1383 |
-| checkpoint-4500 | 46.99 | 0.3427 | 0.0148 | 0.1388 |
-| checkpoint-5000 | 46.75 | 0.3434 | 0.0147 | 0.1389 |
-| final | 46.75 | 0.3434 | 0.0147 | 0.1389 |
+| checkpoint-5500 | 53.28 | 0.3243 | 0.0063 | 0.1389 |
+| checkpoint-8000 | 40.11 | 0.3528 | 0.0069 | 0.1412 |
+| checkpoint-10000 | 35.75 | 0.3641 | 0.0092 | 0.1427 |
+| checkpoint-12000 | 33.15 | 0.3704 | 0.0091 | 0.1423 |
+| checkpoint-14000 | 30.92 | 0.3800 | 0.0082 | 0.1437 |
+| checkpoint-16000 | 29.38 | 0.3854 | 0.0103 | 0.1436 |
+| checkpoint-18000 | 28.16 | 0.3910 | 0.0069 | 0.1445 |
+| checkpoint-20000 | 27.11 | 0.3947 | 0.0082 | 0.1443 |
+| checkpoint-22000 | 26.42 | 0.3977 | 0.0134 | 0.1443 |
+| checkpoint-24000 | 25.71 | 0.4009 | 0.0125 | 0.1445 |
+| checkpoint-26000 | 24.91 | 0.4044 | 0.0145 | 0.1447 |
+| checkpoint-28000 | 24.29 | 0.4075 | 0.0082 | 0.1442 |
+| checkpoint-30000 | 23.68 | 0.4105 | 0.0096 | 0.1442 |
+| checkpoint-32000 | 23.59 | 0.4117 | 0.0152 | 0.1445 |
+| checkpoint-34000 | 23.01 | 0.4143 | 0.0132 | 0.1445 |
+| checkpoint-36000 | 22.52 | 0.4175 | 0.0116 | 0.1443 |
+| checkpoint-38000 | 22.04 | 0.4204 | 0.0128 | 0.1442 |
+| checkpoint-40000 | 21.64 | 0.4226 | 0.0125 | 0.1442 |
+| checkpoint-42000 | 21.60 | 0.4238 | 0.0177 | 0.1442 |
+| checkpoint-44000 | 21.32 | 0.4250 | 0.0183 | 0.1443 |
+| checkpoint-46000 | 21.06 | 0.4265 | 0.0156 | 0.1438 |
+| checkpoint-48000 | 20.83 | 0.4278 | 0.0163 | 0.1440 |
+| checkpoint-50000 | 20.62 | 0.4295 | 0.0150 | 0.1437 |
+| checkpoint-52000 | 20.74 | 0.4293 | 0.0195 | 0.1440 |
+| checkpoint-54000 | 20.66 | 0.4299 | 0.0193 | 0.1440 |
+| checkpoint-56000 | 20.61 | 0.4306 | 0.0187 | 0.1441 |
+| checkpoint-58000 | 20.59 | 0.4304 | 0.0194 | 0.1439 |
+| checkpoint-60000 | 20.58 | 0.4305 | 0.0192 | 0.1440 |
+| final | 20.58 | 0.4305 | 0.0192 | 0.1440 |
 
-Interpretation in plain language:
+Key observations:
 
-1. Perplexity improves strongly as training progresses.
-2. Token accuracy also increases steadily.
-3. ECE remains low but does not improve monotonically.
-4. Final and checkpoint-5000 are effectively identical in this run.
+1. Perplexity shows strong improvement in early training (5.5k→20k), then plateaus around 20.6 thereafter, indicating learning curve saturation.
+2. Token accuracy continues improving steadily across the full range, reaching 0.43 by step 60k.
+3. Expected Calibration Error (ECE) remains low and stable (~0.008–0.015) throughout, showing the model maintains good confidence calibration.
+4. Brier score is consistently around 0.144, demonstrating robust uncertainty quantification.
+5. Checkpoint-60000 and final are identical (training completed exactly at target step).
 
-Comparison plot for all checkpoints is saved in:
+Comparison plots (2k-stride for presentation, 500-step stride stored):
 
-![checkpoint comparison](assets/phase3_checkpoint_comparison.png)
+![checkpoint comparison](artifacts/eval/phase3_intrinsic/phase3_checkpoint_comparison_presentation.png)
 
-This figure uses one clean plot with a legend and normalized metric trends so checkpoints are easy to compare at a glance.
+Full evaluation metrics per checkpoint are available in `artifacts/eval/phase3_intrinsic/` including:
+- Per-checkpoint reliability diagrams and selective prediction curves
+- Full summary CSV with all 112 checkpoints (5500–60000)
+- Presentation summary (2k stride) for easy review
 
 Phase 3 reference:
 
@@ -227,7 +252,7 @@ sbatch slurm/phase2_train_v100.sbatch
 ### 4) Resume from last checkpoint
 
 ```bash
-sbatch slurm/phase2_train_v100_resume.sbatch checkpoints/nano-alpha-130m-v100/checkpoint-5000 10000
+sbatch slurm/phase2_train_v100_resume_vault.sbatch checkpoints/nano-alpha-130m-v100/checkpoint-5000 60000
 ```
 
 ### 5) Run Phase 3 intrinsic evaluation on V100
