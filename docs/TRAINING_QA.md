@@ -94,11 +94,11 @@ A staged plan:
 Use checkpoints every 500 steps for safe resume under queue interruptions.
 
 ## Q9) How do I resume training from a checkpoint across multiple SLURM jobs?
-Use the [resume sbatch template](../slurm/phase2_train_v100_resume.sbatch):
+Use the [resume sbatch template](../slurm/phase2_train_v100_resume_vault.sbatch):
 
 ```bash
 # After current job finishes, resume from its LAST checkpoint
-sbatch slurm/phase2_train_v100_resume.sbatch \
+sbatch slurm/phase2_train_v100_resume_vault.sbatch \
   checkpoints/nano-alpha-130m-v100/checkpoint-5000 \
   10000
 ```

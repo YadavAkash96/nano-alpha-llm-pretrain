@@ -77,6 +77,24 @@ def parse_args() -> argparse.Namespace:
         choices=["auto", "cpu", "cuda"],
         help="Evaluation device",
     )
+    parser.add_argument(
+        "--min-checkpoint-step",
+        type=int,
+        default=0,
+        help="Only evaluate checkpoint-N where N >= this value (default: 0)",
+    )
+    parser.add_argument(
+        "--max-checkpoint-step",
+        type=int,
+        default=0,
+        help="Only evaluate checkpoint-N where N <= this value (0 means no upper bound)",
+    )
+    parser.add_argument(
+        "--presentation-stride",
+        type=int,
+        default=2000,
+        help="Step gap used to create a trimmed presentation summary (default: 2000)",
+    )
     return parser.parse_args()
 
 
@@ -245,6 +263,77 @@ def checkpoint_step(name: str) -> int:
         except Exception:
             return 10**9 - 1
     return 10**9 - 2
+
+
+def checkpoint_step_or_none(name: str) -> int | None:
+    if name.startswith("checkpoint-"):
+        try:
+            return int(name.split("-")[-1])
+        except Exception:
+            return None
+    return None
+
+
+def filter_checkpoints_by_step(ckpts: List[Path], min_step: int, max_step: int) -> List[Path]:
+    filtered: List[Path] = []
+    for ckpt in ckpts:
+        step = checkpoint_step_or_none(ckpt.name)
+        if step is None:
+            # Keep non-step aliases like final by default.
+            filtered.append(ckpt)
+            continue
+        if step < min_step:
+            continue
+        if max_step > 0 and step > max_step:
+            continue
+        filtered.append(ckpt)
+    return filtered
+
+
+def build_presentation_rows(rows: List[Dict[str, object]], stride: int) -> List[Dict[str, object]]:
+    if not rows:
+        return []
+
+    stride = max(1, stride)
+    sorted_rows = sorted(rows, key=lambda r: checkpoint_step(str(r["checkpoint"])))
+
+    out: List[Dict[str, object]] = []
+    first = sorted_rows[0]
+    out.append(first)
+
+    for row in sorted_rows[1:-1]:
+        name = str(row["checkpoint"])
+        step = checkpoint_step_or_none(name)
+        if step is None:
+            continue
+        if step % stride == 0:
+            out.append(row)
+
+    if len(sorted_rows) > 1:
+        last = sorted_rows[-1]
+        if out[-1]["checkpoint"] != last["checkpoint"]:
+            out.append(last)
+
+    return out
+
+
+def write_summary_md(path: Path, rows: List[Dict[str, object]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = [
+        "| Checkpoint | Perplexity | Token Accuracy | ECE | Brier |",
+        "|---|---:|---:|---:|---:|",
+    ]
+    for row in rows:
+        lines.append(
+            "| {checkpoint} | {perplexity:.4f} | {token_accuracy:.4f} | {ece:.4f} | {brier:.4f} |".format(
+                checkpoint=row["checkpoint"],
+                perplexity=float(row["perplexity"]),
+                token_accuracy=float(row["token_accuracy"]),
+                ece=float(row["ece"]),
+                brier=float(row["brier"]),
+            )
+        )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def normalize_series(values: List[float], higher_is_better: bool) -> List[float]:
@@ -485,6 +574,12 @@ def main() -> None:
         raise RuntimeError("No rows loaded from eval JSONL")
 
     ckpts = discover_checkpoints(args.checkpoints_dir)
+    ckpts = filter_checkpoints_by_step(ckpts, args.min_checkpoint_step, args.max_checkpoint_step)
+    if not ckpts:
+        raise RuntimeError(
+            "No checkpoints match filters: "
+            f"min_step={args.min_checkpoint_step}, max_step={args.max_checkpoint_step}"
+        )
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     summary_rows: List[Dict[str, object]] = []
@@ -531,12 +626,33 @@ def main() -> None:
     summary_csv = args.output_dir / "phase3_intrinsic_summary.csv"
     write_summary_csv(summary_csv, summary_rows)
 
+    summary_md = args.output_dir / "phase3_intrinsic_summary.md"
+    write_summary_md(summary_md, summary_rows)
+
     comparison_png = args.output_dir / "phase3_checkpoint_comparison.png"
     plot_checkpoint_comparison(summary_rows, comparison_png)
 
+    presentation_rows = build_presentation_rows(summary_rows, stride=args.presentation_stride)
+    presentation_json = args.output_dir / "phase3_intrinsic_summary_presentation.json"
+    presentation_json.write_text(json.dumps(presentation_rows, indent=2), encoding="utf-8")
+
+    presentation_csv = args.output_dir / "phase3_intrinsic_summary_presentation.csv"
+    write_summary_csv(presentation_csv, presentation_rows)
+
+    presentation_md = args.output_dir / "phase3_intrinsic_summary_presentation.md"
+    write_summary_md(presentation_md, presentation_rows)
+
+    presentation_png = args.output_dir / "phase3_checkpoint_comparison_presentation.png"
+    plot_checkpoint_comparison(presentation_rows, presentation_png)
+
     print(f"Wrote summary JSON: {summary_json}")
     print(f"Wrote summary CSV: {summary_csv}")
+    print(f"Wrote summary Markdown table: {summary_md}")
     print(f"Wrote checkpoint comparison plot: {comparison_png}")
+    print(f"Wrote presentation JSON: {presentation_json}")
+    print(f"Wrote presentation CSV: {presentation_csv}")
+    print(f"Wrote presentation Markdown table: {presentation_md}")
+    print(f"Wrote presentation checkpoint comparison plot: {presentation_png}")
 
 
 if __name__ == "__main__":

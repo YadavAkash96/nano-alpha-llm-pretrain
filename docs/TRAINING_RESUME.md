@@ -2,16 +2,42 @@
 
 This guide explains how to continue training from a checkpoint and monitor progress on W&B.
 
+## Checkpoint retention update
+
+The training code now keeps all checkpoints by default on new runs. If you do not pass `--save-total-limit`, every 500-step checkpoint will remain on disk.
+
+## Recommended on HPC: Vault-backed continuation
+
+To avoid home quota pressure, run continuation with the vault-backed job profile.
+
+```bash
+sbatch slurm/phase2_train_v100_resume_vault.sbatch checkpoints/nano-alpha-130m-v100/checkpoint-5000 60000
+```
+
+This keeps new checkpoints and local MLflow runs under:
+
+1. `/home/vault/iwi5/iwi5232h/nano-alpha-llm-pretrain/checkpoints/nano-alpha-130m-v100`
+2. `/home/vault/iwi5/iwi5232h/nano-alpha-llm-pretrain/mlruns`
+
+Optional overrides for custom paths:
+
+```bash
+VAULT_ROOT=/home/vault/iwi5/iwi5232h/nano-alpha-llm-pretrain \
+OUTPUT_DIR=/home/vault/iwi5/iwi5232h/nano-alpha-llm-pretrain/checkpoints/nano-alpha-130m-v100 \
+MLFLOW_ROOT=/home/vault/iwi5/iwi5232h/nano-alpha-llm-pretrain/mlruns \
+sbatch slurm/phase2_train_v100_resume_vault.sbatch checkpoints/nano-alpha-130m-v100/checkpoint-5000 60000
+```
+
 ## Quick Start: Resume Training
 
 After the current training finishes (or at any checkpoint), resume from the **LAST checkpoint**:
 
 ```bash
 # Example: if current job max_steps=5000, use checkpoint-5000
-sbatch slurm/phase2_train_v100_resume.sbatch checkpoints/nano-alpha-130m-v100/checkpoint-5000 10000
+sbatch slurm/phase2_train_v100_resume_vault.sbatch checkpoints/nano-alpha-130m-v100/checkpoint-5000 60000
 ```
 
-This resumes from step 5000 and trains to step 10000 total (adding 5000 more steps).
+This resumes from step 5000 and trains to step 60000 total (adding 55000 more steps).
 
 **Key point:** The second argument is your **new total max_steps**, not additional steps.
 
@@ -24,7 +50,7 @@ This resumes from step 5000 and trains to step 10000 total (adding 5000 more ste
 
 2. **new_max_steps**: TOTAL training steps (not additional) (required)
    - This is the final target, not what you're adding
-   - If previous job did max_steps=5000, set this to your new goal (e.g., 10000, 30000, 60000)
+   - If previous job did max_steps=5000, set this to your new goal (e.g., 60000)
    - The trainer will resume from step 5000 and run until reaching this number
 
 3. **wandb_run_id** (optional): Continue in same W&B run
@@ -49,7 +75,7 @@ Possible reasons and fixes:
 
 1. **Network timeout on compute node** (most common):
    - The script detects this automatically
-   - It falls back to `--report-to none`
+   - It falls back to `--report-to mlflow`
    - Data won't sync to W&B during training
    - You can manually sync logs later:
    ```bash
@@ -72,7 +98,7 @@ To continue in the SAME W&B run (same charts/history):
 1. Find your run ID from W&B dashboard
 2. Submit resume with the ID:
 ```bash
-sbatch slurm/phase2_train_v100_resume.sbatch checkpoints/nano-alpha-130m-v100/checkpoint-1000 10000 <run_id>
+sbatch slurm/phase2_train_v100_resume_vault.sbatch checkpoints/nano-alpha-130m-v100/checkpoint-6000 60000 <run_id>
 ```
 
 Logs will append to the same run instead of starting a new one.
@@ -91,20 +117,14 @@ All are needed for correct resume.
 ## Multi-Stage Training Example
 
 Current state:
-- Running job: ~1200 steps done
-- Target: 80k steps total (for ~2.6B tokens)
+- Latest checkpoint: checkpoint-6000
+- Target: 60k steps total for the current continuation
 
 Plan:
 ```bash
 # Stage 1 (current): ~1200 steps, likely to complete
-# Stage 2: Resume to 30k steps
-sbatch slurm/phase2_train_v100_resume.sbatch checkpoints/nano-alpha-130m-v100/checkpoint-1000 30000
-
-# Stage 3: Resume to 60k steps (if loss still improving)
-sbatch slurm/phase2_train_v100_resume.sbatch checkpoints/nano-alpha-130m-v100/checkpoint-<latest> 60000
-
-# Stage 4: Resume to 80k steps (final, if needed)
-sbatch slurm/phase2_train_v100_resume.sbatch checkpoints/nano-alpha-130m-v100/checkpoint-<latest> 80000
+# Stage 2: Resume from the latest checkpoint to 60k steps total
+sbatch slurm/phase2_train_v100_resume_vault.sbatch checkpoints/nano-alpha-130m-v100/checkpoint-6000 60000
 ```
 
 Each stage adds more training and computes more tokens (see TRAINING_QA.md for token budgets).

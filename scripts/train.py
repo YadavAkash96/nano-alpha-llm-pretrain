@@ -53,6 +53,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--max-steps", type=int, default=5000, help="Total optimization steps")
     parser.add_argument("--save-steps", type=int, default=500, help="Checkpoint save interval")
+    parser.add_argument(
+        "--save-total-limit",
+        type=int,
+        default=0,
+        help="Maximum number of checkpoints to keep on disk (0 means keep all)",
+    )
     parser.add_argument("--eval-steps", type=int, default=500, help="Evaluation interval")
     parser.add_argument("--logging-steps", type=int, default=20, help="Logging interval")
     parser.add_argument("--seq-length", type=int, default=1024, help="Sequence length for CLM")
@@ -232,7 +238,7 @@ def main() -> None:
         "logging_first_step": True,
         "save_strategy": "steps",
         "save_steps": args.save_steps,
-        "save_total_limit": 20,
+        "save_total_limit": None if args.save_total_limit == 0 else args.save_total_limit,
         "eval_steps": args.eval_steps,
         "bf16": args.bf16,
         "fp16": args.fp16,
