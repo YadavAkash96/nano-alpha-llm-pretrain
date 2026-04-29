@@ -178,7 +178,7 @@ Key observations:
 
 Comparison plots (2k-stride for presentation, 500-step stride stored):
 
-![checkpoint comparison](artifacts/eval/phase3_intrinsic/phase3_checkpoint_comparison_presentation.png)
+![checkpoint comparison](assets/phase3_checkpoint_comparison_presentation.png)
 
 Full evaluation metrics per checkpoint are available in `artifacts/eval/phase3_intrinsic/` including:
 - Per-checkpoint reliability diagrams and selective prediction curves
